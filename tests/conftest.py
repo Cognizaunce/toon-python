@@ -11,7 +11,7 @@ import pytest
 # Simple test data fixtures
 @pytest.fixture
 def simple_object() -> Dict[str, Any]:
-    """A simple object for basic encoding/decoding tests."""
+    """A simple object for basic encoding tests."""
     return {"id": 123, "name": "Alice", "active": True}
 
 
@@ -109,14 +109,3 @@ def encode_options_pipe() -> Dict[str, Any]:
     """Encode options with pipe delimiter."""
     return {"delimiter": "|", "indent": 2}
 
-
-@pytest.fixture
-def decode_options_strict() -> Dict[str, bool]:
-    """Decode options with strict mode enabled."""
-    return {"strict": True}
-
-
-@pytest.fixture
-def decode_options_lenient() -> Dict[str, bool]:
-    """Decode options with strict mode disabled."""
-    return {"strict": False}

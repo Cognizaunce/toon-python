@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-from typing import TypeVar
-
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from toon_format import encode
-
-T = TypeVar("T", bound="ToonPydanticModel")
 
 
 class ToonPydanticModel(BaseModel):
@@ -15,7 +11,6 @@ class ToonPydanticModel(BaseModel):
 
     • schema_to_toon()        → TOON schema string (for LLM few-shot / system prompts)
     • model_dump_toon()       → Serialize this model instance to a TOON string
-    • model_validate_toon()   → Parse TOON output directly into a validated model
     """
 
     @classmethod
@@ -37,29 +32,3 @@ class ToonPydanticModel(BaseModel):
         """
         data = self.model_dump(mode="json", **kwargs)
         return encode(data)
-
-    @classmethod
-    def model_validate_toon(cls: type[T], text: str) -> T:
-        """
-        Parse a raw TOON string (from an LLM) into a fully validated model.
-
-        Mirrors pydantic's ``model_validate_json()``.
-
-        Raises:
-            ValueError – If TOON parsing fails or the input is empty
-            ValidationError – If data doesn't match the model
-        """
-        if not text.strip():
-            raise ValueError("Empty string cannot be parsed as TOON")
-
-        try:
-            from toon_format.decoder import decode
-
-            data = decode(text.strip())
-            return cls.model_validate(data)
-        except ModuleNotFoundError as e:
-            raise ValueError("TOON decoding is not available in this encode-only build") from e
-        except ValidationError as e:
-            raise e  # Let Pydantic's rich error surface (best UX)
-        except Exception as e:
-            raise ValueError(f"Failed to parse TOON into {cls.__name__}: {e}") from e

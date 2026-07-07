@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Type definitions for TOON format.
 
-Defines type aliases and TypedDict classes for JSON values, encoding/decoding
-options, and internal types used throughout the package.
+Defines type aliases and TypedDict classes for JSON values, encoding options,
+and internal types used throughout the package.
 """
 
 from typing import Any, Dict, List, Literal, TypedDict, Union
@@ -45,19 +45,6 @@ class ResolvedEncodeOptions:
         self.indent = indent
         self.delimiter = delimiter
         self.lengthMarker: Union[str, Literal[False]] = length_marker
-
-
-class DecodeOptions:
-    """Options for TOON decoding.
-
-    Attributes:
-        indent: Number of spaces per indentation level (default: 2)
-        strict: Enable strict validation (default: True)
-    """
-
-    def __init__(self, indent: int = 2, strict: bool = True) -> None:
-        self.indent = indent
-        self.strict = strict
 
 
 # Depth type for tracking indentation level

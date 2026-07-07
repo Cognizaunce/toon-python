@@ -18,7 +18,7 @@ Example:
 """
 
 from .encoder import encode
-from .types import DecodeOptions, Delimiter, DelimiterKey, EncodeOptions
+from .types import Delimiter, DelimiterKey, EncodeOptions
 
 __version__ = "0.9.0-beta.1"
 __all__ = [
@@ -26,5 +26,4 @@ __all__ = [
     "Delimiter",
     "DelimiterKey",
     "EncodeOptions",
-    "DecodeOptions",
 ]
