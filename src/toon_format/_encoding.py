@@ -59,6 +59,8 @@ class ToonEncoder:
 
     def __init__(self, options: ResolvedEncodeOptions, writer: LineWriter) -> None:
         self.options = options
+        self.delimiter = options.delimiter
+        self.length_marker = options.lengthMarker
         self.writer = writer
         self._key_cache: Dict[str, str] = {}
 
@@ -162,8 +164,11 @@ class ToonEncoder:
         """Encode uniform primitive-only objects in tabular form."""
         self.writer.push(depth, self.header(key, len(arr), fields))
 
+        push = self.writer.push
+        primitive_row = self.primitive_row
+        row_depth = depth + 1
         for obj in arr:
-            self.writer.push(depth + 1, self.primitive_row(obj, fields))
+            push(row_depth, primitive_row(obj, fields))
 
     def write_mixed_array_as_list_items(
         self, arr: JsonArray, depth: Depth, key: Optional[str]
@@ -181,12 +186,13 @@ class ToonEncoder:
 
     def write_object_as_list_item(self, obj: JsonObject, depth: Depth) -> None:
         """Encode an object as a list item."""
-        items = list(obj.items())
-        if not items:
+        items = iter(obj.items())
+        try:
+            first_key, first_value = next(items)
+        except StopIteration:
             self.writer.push(depth, LIST_ITEM_PREFIX.rstrip())
             return
 
-        first_key, first_value = items[0]
         if is_json_primitive(first_value):
             self.writer.push(
                 depth,
@@ -198,7 +204,7 @@ class ToonEncoder:
             self.writer.push(depth, LIST_ITEM_PREFIX.rstrip())
             self.write_key_value_pair(first_key, first_value, depth + 1)
 
-        for key, value in items[1:]:
+        for key, value in items:
             self.write_key_value_pair(key, value, depth + 1)
 
     def write_array_as_list_item(
@@ -233,24 +239,24 @@ class ToonEncoder:
 
     def primitive_row(self, obj: JsonObject, fields: List[str]) -> str:
         """Build one tabular row for a primitive-only object."""
-        delimiter = self.options.delimiter
+        delimiter = self.delimiter
         primitive = encode_primitive
         return delimiter.join([primitive(obj[field], delimiter) for field in fields])
 
     def join_primitives(self, values: JsonArray) -> str:
         """Encode and join primitive values with the active delimiter."""
-        delimiter = self.options.delimiter
+        delimiter = self.delimiter
         primitive = encode_primitive
         return delimiter.join([primitive(value, delimiter) for value in values])
 
     def primitive(self, value: JsonPrimitive) -> str:
         """Encode one primitive with the active delimiter."""
-        return encode_primitive(value, self.options.delimiter)
+        return encode_primitive(value, self.delimiter)
 
     def header(self, key: Optional[str], length: int, fields: Optional[List[str]]) -> str:
         """Build an array header with active options."""
-        delimiter = self.options.delimiter
-        marker_prefix = self.options.lengthMarker if self.options.lengthMarker else ""
+        delimiter = self.delimiter
+        marker_prefix = self.length_marker if self.length_marker else ""
 
         fields_str = ""
         if fields:
@@ -290,15 +296,16 @@ def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
     if not arr:
         return (ARRAY_PRIMITIVE, None)
 
-    first = arr[0]
+    iterator = iter(arr)
+    first = next(iterator)
     if is_json_primitive(first):
-        for item in arr[1:]:
+        for item in iterator:
             if not is_json_primitive(item):
                 return (ARRAY_MIXED, None)
         return (ARRAY_PRIMITIVE, None)
 
     if is_json_array(first):
-        for item in arr[1:]:
+        for item in iterator:
             if not is_json_array(item):
                 return (ARRAY_MIXED, None)
         return (ARRAY_ARRAYS, None)
@@ -306,15 +313,17 @@ def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
     if is_json_object(first):
         fields = list(first.keys())
         field_set = set(fields)
-        if not all(is_json_primitive(value) for value in first.values()):
+        field_count = len(fields)
+        is_primitive = is_json_primitive
+        if not all(is_primitive(value) for value in first.values()):
             return (ARRAY_OBJECTS_LIST, None)
 
-        for item in arr[1:]:
+        for item in iterator:
             if not is_json_object(item):
                 return (ARRAY_MIXED, None)
-            if set(item.keys()) != field_set:
+            if len(item) != field_count or item.keys() != field_set:
                 return (ARRAY_OBJECTS_LIST, None)
-            if not all(is_json_primitive(value) for value in item.values()):
+            if not all(is_primitive(value) for value in item.values()):
                 return (ARRAY_OBJECTS_LIST, None)
 
         return (ARRAY_OBJECTS_TABULAR, fields)

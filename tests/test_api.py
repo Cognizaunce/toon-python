@@ -2,7 +2,7 @@
 
 import pytest
 
-from toon_format import encode
+from toon_format import encode, encode_normalized
 from toon_format.types import EncodeOptions
 
 
@@ -61,6 +61,10 @@ class TestEncodeAPI:
 
     def test_encode_root_primitive(self):
         assert encode("hello") == "hello"
+
+    def test_encode_normalized_is_public(self):
+        result = encode_normalized({"items": [1, 2, 3]})
+        assert result == "items[3]: 1,2,3"
 
 
 class TestOptionsValidation:
