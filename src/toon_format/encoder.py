@@ -9,8 +9,8 @@ pipeline: normalization → encoding → writing.
 
 from typing import Any, Optional
 
+from ._encoding import encode_value
 from .constants import DEFAULT_DELIMITER, DELIMITERS
-from .encoders import encode_value
 from .normalize import normalize_value
 from .types import EncodeOptions, ResolvedEncodeOptions
 from .writer import LineWriter

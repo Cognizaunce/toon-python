@@ -4,7 +4,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from toon_format import decode, encode
+from toon_format import encode
 
 T = TypeVar("T", bound="ToonPydanticModel")
 
@@ -53,8 +53,12 @@ class ToonPydanticModel(BaseModel):
             raise ValueError("Empty string cannot be parsed as TOON")
 
         try:
+            from toon_format.decoder import decode
+
             data = decode(text.strip())
             return cls.model_validate(data)
+        except ModuleNotFoundError as e:
+            raise ValueError("TOON decoding is not available in this encode-only build") from e
         except ValidationError as e:
             raise e  # Let Pydantic's rich error surface (best UX)
         except Exception as e:

@@ -4,8 +4,8 @@ Tests the consistency and correctness of numeric literal detection
 across encoding and decoding pipelines.
 """
 
+from toon_format._encoding import is_numeric_like
 from toon_format._literal_utils import is_numeric_literal
-from toon_format._validation import is_numeric_like
 
 
 class TestNumericLiteral:
@@ -154,37 +154,3 @@ class TestConsistency:
                 # is_numeric_like might have slightly different behavior for edge cases
 
 
-class TestRoundTripConsistency:
-    """Test that encoding and decoding are consistent."""
-
-    def test_octal_like_numbers_preserved_as_strings(self):
-        """Test that octal-like numbers are preserved as strings through round-trip."""
-        from toon_format import decode, encode
-
-        # These should be treated as strings, not numbers
-        octal_values = ["0123", "007", "00"]
-        for val in octal_values:
-            # When we encode a dict with these as values
-            data = {"value": val}
-            encoded = encode(data)
-            decoded = decode(encoded)
-            # Assert it's a dict before trying to access
-            assert isinstance(decoded, dict)
-            # They should come back as strings
-            assert decoded["value"] == val
-            assert isinstance(decoded["value"], str)
-
-    def test_valid_numbers_preserved_as_numbers(self):
-        """Test that valid numbers are preserved as numbers through round-trip."""
-        from toon_format import decode, encode
-
-        numbers = [0, 1, 42, -1, 3.14, -2.5]
-        for num in numbers:
-            data = {"value": num}
-            encoded = encode(data)
-            decoded = decode(encoded)
-            # Assert it's a dict before trying to access
-            assert isinstance(decoded, dict)
-            # They should come back as numbers (with potential float/int conversion)
-            assert decoded["value"] == num
-            assert isinstance(decoded["value"], (int, float))

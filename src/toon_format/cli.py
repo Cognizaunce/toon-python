@@ -8,9 +8,12 @@ delimiters, indentation, and validation modes.
 """
 
 import json
+import sys
+from argparse import ArgumentParser
+from pathlib import Path
 
-from . import decode, encode
-from .types import DecodeOptions, EncodeOptions
+from . import encode
+from .types import EncodeOptions
 
 
 def encode_json_to_toon(
@@ -44,25 +47,89 @@ def encode_json_to_toon(
     return encode(data, options)
 
 
-def decode_toon_to_json(
-    toon_text: str,
-    indent: int = 2,
-    strict: bool = True,
-) -> str:
-    """Decode TOON text to JSON format.
+def main() -> int:
+    """Main CLI entry point for encode-only conversion."""
+    parser = ArgumentParser(
+        prog="toon",
+        description="Convert JSON to TOON format",
+    )
+    parser.add_argument("input", type=str, help="Input file path (or - for stdin)")
+    parser.add_argument("-o", "--output", type=str, help="Output file path")
+    parser.add_argument("-e", "--encode", action="store_true", help="Force encode mode")
+    parser.add_argument("-d", "--decode", action="store_true", help="Decode mode is unavailable")
+    parser.add_argument(
+        "--delimiter",
+        type=str,
+        choices=[",", "\t", "|"],
+        default=",",
+        help='Array delimiter: , (comma), \\t (tab), | (pipe) (default: ",")',
+    )
+    parser.add_argument("--indent", type=int, default=2, help="Indentation size (default: 2)")
+    parser.add_argument(
+        "--length-marker",
+        action="store_true",
+        help="Add # prefix to array lengths (e.g., items[#3])",
+    )
+    parser.add_argument(
+        "--no-strict",
+        action="store_true",
+        help="Ignored in encode-only builds",
+    )
 
-    Args:
-        toon_text: TOON input string
-        indent: Indentation size
-        strict: Whether to use strict validation
+    args = parser.parse_args()
 
-    Returns:
-        JSON-formatted string
+    if args.encode and args.decode:
+        print("Error: Cannot specify both --encode and --decode", file=sys.stderr)
+        return 1
 
-    Raises:
-        ToonDecodeError: If TOON is invalid
-    """
-    options = DecodeOptions(indent=indent, strict=strict)
-    data = decode(toon_text, options)
+    try:
+        if args.input == "-":
+            input_text = sys.stdin.read()
+            input_path = None
+        else:
+            input_path = Path(args.input)
+            if not input_path.exists():
+                print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+                return 1
+            input_text = input_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"Error reading input: {e}", file=sys.stderr)
+        return 1
 
-    return json.dumps(data, indent=indent, ensure_ascii=False)
+    if args.decode:
+        print("Error during decode: TOON decoding is not available", file=sys.stderr)
+        return 1
+
+    if not args.encode:
+        try:
+            json.loads(input_text)
+        except json.JSONDecodeError:
+            print("Error during decode: TOON decoding is not available", file=sys.stderr)
+            return 1
+
+    try:
+        output_text = encode_json_to_toon(
+            input_text,
+            delimiter=args.delimiter,
+            indent=args.indent,
+            length_marker=args.length_marker,
+        )
+    except Exception as e:
+        print(f"Error during encode: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        if args.output:
+            output_path = Path(args.output)
+            output_path.write_text(output_text, encoding="utf-8")
+        else:
+            print(output_text)
+    except Exception as e:
+        print(f"Error writing output: {e}", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
