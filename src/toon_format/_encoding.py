@@ -4,7 +4,7 @@
 
 import re
 from decimal import Decimal
-from typing import List, Literal, Optional, Tuple, Union, cast
+from typing import Dict, List, Literal, Optional, Tuple, Union, cast
 
 from ._literal_utils import is_boolean_or_null_literal
 from ._string_utils import escape_string
@@ -47,6 +47,12 @@ ARRAY_OBJECTS_TABULAR = "objects_tabular"
 ARRAY_OBJECTS_LIST = "objects_list"
 ARRAY_MIXED = "mixed"
 
+_CONTROL_CHARS_PATTERN = re.compile(r"[\n\r\t]")
+_NUMERIC_PATTERN = re.compile(NUMERIC_REGEX, re.IGNORECASE)
+_OCTAL_PATTERN = re.compile(OCTAL_REGEX)
+_STRUCTURAL_CHARS_PATTERN = re.compile(r"[\[\]{}]")
+_VALID_KEY_PATTERN = re.compile(VALID_KEY_REGEX, re.IGNORECASE)
+
 
 class ToonEncoder:
     """Stateful internal encoder for normalized JSON-compatible values."""
@@ -54,6 +60,7 @@ class ToonEncoder:
     def __init__(self, options: ResolvedEncodeOptions, writer: LineWriter) -> None:
         self.options = options
         self.writer = writer
+        self._key_cache: Dict[str, str] = {}
 
     def write_value(self, value: JsonValue, depth: Depth = 0) -> None:
         """Encode a normalized value at the given depth."""
@@ -67,7 +74,7 @@ class ToonEncoder:
     def write_object(self, obj: JsonObject, depth: Depth, key: Optional[str]) -> None:
         """Encode an object."""
         if key:
-            self.writer.push(depth, f"{encode_key(key)}:")
+            self.writer.push(depth, f"{self.key(key)}:")
 
         value_depth = depth if not key else depth + 1
         for obj_key, obj_value in obj.items():
@@ -76,7 +83,7 @@ class ToonEncoder:
     def write_key_value_pair(self, key: str, value: JsonValue, depth: Depth) -> None:
         """Encode one object field."""
         if is_json_primitive(value):
-            self.writer.push(depth, f"{encode_key(key)}: {self.primitive(value)}")
+            self.writer.push(depth, f"{self.key(key)}: {self.primitive(value)}")
         elif is_json_array(value):
             self.write_array(cast(JsonArray, value), depth, key)
         elif is_json_object(value):
@@ -183,7 +190,7 @@ class ToonEncoder:
         if is_json_primitive(first_value):
             self.writer.push(
                 depth,
-                f"{LIST_ITEM_PREFIX}{encode_key(first_key)}: {self.primitive(first_value)}",
+                f"{LIST_ITEM_PREFIX}{self.key(first_key)}: {self.primitive(first_value)}",
             )
         elif is_json_array(first_value):
             self.write_array_as_list_item(cast(JsonArray, first_value), depth, first_key)
@@ -226,12 +233,15 @@ class ToonEncoder:
 
     def primitive_row(self, obj: JsonObject, fields: List[str]) -> str:
         """Build one tabular row for a primitive-only object."""
-        return self.join_primitives([obj[field] for field in fields])
+        delimiter = self.options.delimiter
+        primitive = encode_primitive
+        return delimiter.join([primitive(obj[field], delimiter) for field in fields])
 
     def join_primitives(self, values: JsonArray) -> str:
         """Encode and join primitive values with the active delimiter."""
-        encoded_values = [self.primitive(value) for value in values]
-        return join_encoded_values(encoded_values, self.options.delimiter)
+        delimiter = self.options.delimiter
+        primitive = encode_primitive
+        return delimiter.join([primitive(value, delimiter) for value in values])
 
     def primitive(self, value: JsonPrimitive) -> str:
         """Encode one primitive with the active delimiter."""
@@ -239,7 +249,30 @@ class ToonEncoder:
 
     def header(self, key: Optional[str], length: int, fields: Optional[List[str]]) -> str:
         """Build an array header with active options."""
-        return format_header(key, length, fields, self.options.delimiter, self.options.lengthMarker)
+        delimiter = self.options.delimiter
+        marker_prefix = self.options.lengthMarker if self.options.lengthMarker else ""
+
+        fields_str = ""
+        if fields:
+            encoded_fields = [self.key(field) for field in fields]
+            fields_str = f"{OPEN_BRACE}{delimiter.join(encoded_fields)}{CLOSE_BRACE}"
+
+        if delimiter != COMMA:
+            length_str = f"{OPEN_BRACKET}{marker_prefix}{length}{delimiter}{CLOSE_BRACKET}"
+        else:
+            length_str = f"{OPEN_BRACKET}{marker_prefix}{length}{CLOSE_BRACKET}"
+
+        if key:
+            return f"{self.key(key)}{length_str}{fields_str}{COLON}"
+        return f"{length_str}{fields_str}{COLON}"
+
+    def key(self, key: str) -> str:
+        """Encode an object key using this encoder's key cache."""
+        cached = self._key_cache.get(key)
+        if cached is None:
+            cached = encode_key(key)
+            self._key_cache[key] = cached
+        return cached
 
 
 def encode_value(
@@ -253,7 +286,7 @@ def encode_value(
 
 
 def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
-    """Classify an array and return tabular fields when applicable."""
+    """Classify an array with early exits for non-tabular and mixed arrays."""
     if not arr:
         return (ARRAY_PRIMITIVE, None)
 
@@ -273,20 +306,18 @@ def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
     if is_json_object(first):
         fields = list(first.keys())
         field_set = set(fields)
-        is_tabular = all(is_json_primitive(value) for value in first.values())
+        if not all(is_json_primitive(value) for value in first.values()):
+            return (ARRAY_OBJECTS_LIST, None)
 
         for item in arr[1:]:
             if not is_json_object(item):
                 return (ARRAY_MIXED, None)
-
             if set(item.keys()) != field_set:
-                is_tabular = False
-            elif is_tabular and not all(is_json_primitive(value) for value in item.values()):
-                is_tabular = False
+                return (ARRAY_OBJECTS_LIST, None)
+            if not all(is_json_primitive(value) for value in item.values()):
+                return (ARRAY_OBJECTS_LIST, None)
 
-        if is_tabular:
-            return (ARRAY_OBJECTS_TABULAR, fields)
-        return (ARRAY_OBJECTS_LIST, None)
+        return (ARRAY_OBJECTS_TABULAR, fields)
 
     return (ARRAY_MIXED, None)
 
@@ -370,7 +401,7 @@ def is_valid_unquoted_key(key: str) -> bool:
     """Check if a key can be used without quotes."""
     if not key:
         return False
-    return bool(re.match(VALID_KEY_REGEX, key, re.IGNORECASE))
+    return bool(_VALID_KEY_PATTERN.match(key))
 
 
 def is_safe_unquoted(value: str, delimiter: str = COMMA) -> bool:
@@ -385,9 +416,9 @@ def is_safe_unquoted(value: str, delimiter: str = COMMA) -> bool:
         return False
     if DOUBLE_QUOTE in value or "\\" in value:
         return False
-    if re.search(r"[\[\]{}]", value):
+    if _STRUCTURAL_CHARS_PATTERN.search(value):
         return False
-    if re.search(r"[\n\r\t]", value):
+    if _CONTROL_CHARS_PATTERN.search(value):
         return False
     if delimiter in value:
         return False
@@ -396,4 +427,4 @@ def is_safe_unquoted(value: str, delimiter: str = COMMA) -> bool:
 
 def is_numeric_like(value: str) -> bool:
     """Check if a string looks like a number and therefore needs quoting."""
-    return bool(re.match(NUMERIC_REGEX, value, re.IGNORECASE) or re.match(OCTAL_REGEX, value))
+    return bool(_NUMERIC_PATTERN.match(value) or _OCTAL_PATTERN.match(value))
