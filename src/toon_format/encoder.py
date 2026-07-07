@@ -12,7 +12,7 @@ from typing import Any, Optional
 from ._encoding import encode_value
 from .constants import DEFAULT_DELIMITER, DELIMITERS
 from .normalize import normalize_value
-from .types import EncodeOptions, ResolvedEncodeOptions
+from .types import EncodeOptions, JsonValue, ResolvedEncodeOptions
 from .writer import LineWriter
 
 
@@ -27,9 +27,18 @@ def encode(value: Any, options: Optional[EncodeOptions] = None) -> str:
         TOON-formatted string
     """
     normalized = normalize_value(value)
+    return encode_normalized(normalized, options)
+
+
+def encode_normalized(value: JsonValue, options: Optional[EncodeOptions] = None) -> str:
+    """Encode an already-normalized JSON-compatible value into TOON format.
+
+    This skips Python-specific normalization and is intended for values produced by
+    JSON parsers such as ``json.loads``.
+    """
     resolved_options = resolve_options(options)
     writer = LineWriter(resolved_options.indent)
-    encode_value(normalized, resolved_options, writer, 0)
+    encode_value(value, resolved_options, writer, 0)
     return writer.to_string()
 
 

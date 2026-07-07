@@ -4,7 +4,7 @@
 
 import json
 
-from . import encode
+from .encoder import encode_normalized
 from .types import EncodeOptions
 
 
@@ -36,4 +36,4 @@ def encode_json_to_toon(
         "lengthMarker": "#" if length_marker else False,
     }
 
-    return encode(data, options)
+    return encode_normalized(data, options)

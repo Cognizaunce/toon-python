@@ -4,7 +4,7 @@
 
 import re
 from decimal import Decimal
-from typing import List, Literal, Optional, Union, cast
+from typing import List, Literal, Optional, Tuple, Union, cast
 
 from ._literal_utils import is_boolean_or_null_literal
 from ._string_utils import escape_string
@@ -26,9 +26,6 @@ from .constants import (
     VALID_KEY_REGEX,
 )
 from .normalize import (
-    is_array_of_arrays,
-    is_array_of_objects,
-    is_array_of_primitives,
     is_json_array,
     is_json_object,
     is_json_primitive,
@@ -43,6 +40,12 @@ from .types import (
     ResolvedEncodeOptions,
 )
 from .writer import LineWriter
+
+ARRAY_PRIMITIVE = "primitive"
+ARRAY_ARRAYS = "arrays"
+ARRAY_OBJECTS_TABULAR = "objects_tabular"
+ARRAY_OBJECTS_LIST = "objects_list"
+ARRAY_MIXED = "mixed"
 
 
 class ToonEncoder:
@@ -85,16 +88,13 @@ class ToonEncoder:
             self.writer.push(depth, self.header(key, 0, None))
             return
 
-        if is_array_of_primitives(arr):
+        array_kind, tabular_header = classify_array(arr)
+        if array_kind == ARRAY_PRIMITIVE:
             self.write_inline_primitive_array(arr, depth, key)
-        elif is_array_of_arrays(arr):
+        elif array_kind == ARRAY_ARRAYS:
             self.write_array_of_arrays(arr, depth, key)
-        elif is_array_of_objects(arr):
-            tabular_header = detect_tabular_header(arr, self.options.delimiter)
-            if tabular_header:
-                self.write_array_of_objects_as_tabular(arr, tabular_header, depth, key)
-            else:
-                self.write_mixed_array_as_list_items(arr, depth, key)
+        elif array_kind == ARRAY_OBJECTS_TABULAR and tabular_header is not None:
+            self.write_array_of_objects_as_tabular(arr, tabular_header, depth, key)
         else:
             self.write_mixed_array_as_list_items(arr, depth, key)
 
@@ -103,22 +103,22 @@ class ToonEncoder:
         if not arr:
             return
 
-        if is_array_of_primitives(arr):
+        array_kind, tabular_header = classify_array(arr)
+        if array_kind == ARRAY_PRIMITIVE:
             self.write_primitive_array_list_item(arr, depth, None)
-        elif is_array_of_arrays(arr):
+        elif array_kind == ARRAY_ARRAYS:
             for item in arr:
-                if is_array_of_primitives(item):
+                item_kind, _ = classify_array(item)
+                if item_kind == ARRAY_PRIMITIVE:
                     self.write_primitive_array_list_item(item, depth, None)
                 else:
                     self.write_array(item, depth, None)
-        elif is_array_of_objects(arr):
-            tabular_header = detect_tabular_header(arr, self.options.delimiter)
-            if tabular_header:
-                for obj in arr:
-                    self.writer.push(depth, self.primitive_row(obj, tabular_header))
-            else:
-                for item in arr:
-                    self.write_object_as_list_item(item, depth)
+        elif array_kind == ARRAY_OBJECTS_TABULAR and tabular_header is not None:
+            for obj in arr:
+                self.writer.push(depth, self.primitive_row(obj, tabular_header))
+        elif array_kind == ARRAY_OBJECTS_LIST:
+            for item in arr:
+                self.write_object_as_list_item(item, depth)
         else:
             for item in arr:
                 if is_json_primitive(item):
@@ -139,7 +139,8 @@ class ToonEncoder:
         self.writer.push(depth, self.header(key, len(arr), None))
 
         for item in arr:
-            if is_array_of_primitives(item):
+            item_kind, _ = classify_array(item)
+            if item_kind == ARRAY_PRIMITIVE:
                 self.write_primitive_array_list_item(item, depth + 1, None)
             else:
                 self.write_array(item, depth + 1, None)
@@ -197,13 +198,11 @@ class ToonEncoder:
         self, arr: JsonArray, depth: Depth, key: Optional[str]
     ) -> None:
         """Encode an array that appears as a list item or first object-list field."""
-        if is_array_of_primitives(arr):
+        array_kind, tabular_fields = classify_array(arr)
+        if array_kind == ARRAY_PRIMITIVE:
             self.write_primitive_array_list_item(arr, depth, key)
             return
 
-        tabular_fields = None
-        if is_array_of_objects(arr):
-            tabular_fields = detect_tabular_header(arr, self.options.delimiter)
         self.writer.push(depth, f"{LIST_ITEM_PREFIX}{self.header(key, len(arr), tabular_fields)}")
         self.write_array_content(arr, depth + 1)
 
@@ -253,21 +252,51 @@ def encode_value(
     ToonEncoder(options, writer).write_value(value, depth)
 
 
+def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
+    """Classify an array and return tabular fields when applicable."""
+    if not arr:
+        return (ARRAY_PRIMITIVE, None)
+
+    first = arr[0]
+    if is_json_primitive(first):
+        for item in arr[1:]:
+            if not is_json_primitive(item):
+                return (ARRAY_MIXED, None)
+        return (ARRAY_PRIMITIVE, None)
+
+    if is_json_array(first):
+        for item in arr[1:]:
+            if not is_json_array(item):
+                return (ARRAY_MIXED, None)
+        return (ARRAY_ARRAYS, None)
+
+    if is_json_object(first):
+        fields = list(first.keys())
+        field_set = set(fields)
+        is_tabular = all(is_json_primitive(value) for value in first.values())
+
+        for item in arr[1:]:
+            if not is_json_object(item):
+                return (ARRAY_MIXED, None)
+
+            if set(item.keys()) != field_set:
+                is_tabular = False
+            elif is_tabular and not all(is_json_primitive(value) for value in item.values()):
+                is_tabular = False
+
+        if is_tabular:
+            return (ARRAY_OBJECTS_TABULAR, fields)
+        return (ARRAY_OBJECTS_LIST, None)
+
+    return (ARRAY_MIXED, None)
+
+
 def detect_tabular_header(arr: List[JsonObject], delimiter: str) -> Optional[List[str]]:
     """Detect if an object array can use tabular format and return header keys."""
-    if not arr:
-        return None
-
-    first_keys = list(arr[0].keys())
-    first_keys_set = set(first_keys)
-
-    for obj in arr:
-        if set(obj.keys()) != first_keys_set:
-            return None
-        if not all(is_json_primitive(value) for value in obj.values()):
-            return None
-
-    return first_keys
+    array_kind, fields = classify_array(arr)
+    if array_kind == ARRAY_OBJECTS_TABULAR:
+        return fields
+    return None
 
 
 def is_tabular_array(arr: List[JsonObject], delimiter: str) -> bool:
