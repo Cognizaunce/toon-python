@@ -20,10 +20,8 @@ Example:
     {'name': 'Alice', 'age': 30}
 """
 
-from .decoder import ToonDecodeError, decode
 from .encoder import encode
 from .types import DecodeOptions, Delimiter, DelimiterKey, EncodeOptions
-from .utils import compare_formats, count_tokens, estimate_savings
 
 __version__ = "0.9.0-beta.1"
 __all__ = [

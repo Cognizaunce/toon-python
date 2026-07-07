@@ -8,6 +8,7 @@ for inline and tabular array formats.
 """
 
 import re
+from logging import getLogger
 from typing import List, Literal, Optional, Union
 
 from ._string_utils import escape_string
@@ -29,7 +30,6 @@ from .constants import (
     TRUE_LITERAL,
     VALID_KEY_REGEX,
 )
-from .logging_config import get_logger
 from .types import Delimiter, JsonPrimitive
 
 # Precompiled patterns for performance
@@ -40,7 +40,7 @@ _OCTAL_PATTERN = re.compile(OCTAL_REGEX)
 _VALID_KEY_PATTERN = re.compile(VALID_KEY_REGEX, re.IGNORECASE)
 
 
-logger = get_logger(__name__)
+logger = getLogger("toon_format.primitives")
 
 
 def encode_primitive(value: JsonPrimitive, delimiter: str = COMMA) -> str:

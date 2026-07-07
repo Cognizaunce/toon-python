@@ -13,24 +13,17 @@ Converts Python-specific types to JSON-compatible values before encoding:
 """
 
 import math
-import sys
 from collections.abc import Mapping
 from datetime import date, datetime
 from decimal import Decimal
+from logging import getLogger
 from pathlib import PurePath
-from typing import Any
+from typing import Any, TypeGuard
 
-# TypeGuard was added in Python 3.10, use typing_extensions for older versions
-if sys.version_info >= (3, 10):
-    from typing import TypeGuard
-else:
-    from typing_extensions import TypeGuard
-
-from .logging_config import get_logger
 from .types import JsonArray, JsonObject, JsonPrimitive, JsonValue
 
 # Module logger
-logger = get_logger(__name__)
+logger = getLogger("toon_format.normalize")
 
 _MAX_SAFE_INTEGER = 2**53 - 1
 
