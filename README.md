@@ -71,7 +71,7 @@ toon = encode_json_to_toon('{"items": [1, 2, 3]}')
 # items[3]: 1,2,3
 ```
 
-Despite the module name, this package no longer exposes a command-line interface. The former `toon` console script and TOON decoding APIs have been removed.
+The former `toon` console script and TOON decoding APIs have been removed.
 
 ## API Reference
 
@@ -90,7 +90,8 @@ Normalization includes:
 | Python Type | Encoded As |
 |-------------|------------|
 | `datetime.datetime`, `datetime.date` | ISO 8601 strings |
-| `decimal.Decimal` | float |
+| `decimal.Decimal` | float approximation |
+| Python `int` | decimal integer, including arbitrary precision integers |
 | `tuple`, `set`, `frozenset` | list |
 | `pathlib.Path` | string |
 | `float("inf")`, `float("-inf")`, `float("nan")` | `null` |
@@ -157,7 +158,7 @@ Implemented optimizations:
 
 - `encode_normalized()` skips the recursive normalization pass for already JSON-compatible data.
 - JSON string helper now parses once with `json.loads()` and calls `encode_normalized()`.
-- Encoding logic is consolidated in `_encoding.py`.
+- Public encoding helpers live in the package root, with encoder internals in `toon_encoder.py`.
 - Early-exit array classification avoids repeated scans and quickly rejects non-tabular nested object arrays.
 - Encoded keys are cached per encoder instance.
 - String/key validation regexes are precompiled.

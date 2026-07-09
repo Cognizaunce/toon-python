@@ -4,7 +4,7 @@
 
 Converts Python-specific types to JSON-compatible values before encoding:
 - datetime/date → ISO 8601 strings
-- Decimal → float
+- Decimal → float approximation
 - tuple/set/frozenset → sorted lists
 - pathlib.Path → string representation
 - Infinity/NaN → null
@@ -33,7 +33,8 @@ def normalize_value(value: Any) -> JsonValue:
     - datetime objects → ISO 8601 strings
     - sets → sorted lists
     - pathlib.Path → string representation
-    - Large integers (>2^53-1) → strings (for JS compatibility)
+    - Python integers → integers (Python supports arbitrary precision)
+    - Decimal values → float approximation
     - Non-finite floats (inf, -inf, NaN) → null
     - Negative zero → positive zero
     - Mapping types → dicts with string keys
@@ -56,7 +57,7 @@ def normalize_value(value: Any) -> JsonValue:
         None
 
         >>> normalize_value(2**60)  # Large integer
-        '1152921504606846976'
+        1152921504606846976
 
         >>> from pathlib import Path
         >>> normalize_value(Path('/tmp/file.txt'))
@@ -78,8 +79,6 @@ def normalize_value(value: Any) -> JsonValue:
 
     if isinstance(value, int):
         # Python integers have arbitrary precision and are encoded directly
-        # Note: JavaScript BigInt types are converted to strings during normalization
-        # (per spec Section 3), but Python ints don't need this conversion
         return value
 
     if isinstance(value, float):

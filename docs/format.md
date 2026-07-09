@@ -385,19 +385,20 @@ path: "C:\\Users\\Alice"
 ```
 
 **Special Numbers:**
-- **Scientific notation accepted in decoding:** `1e5`, `-3.14E-2`
-- **Encoders must NOT use scientific notation** - always decimal form
+- **Scientific notation in Python floats is expanded where needed:** `1e6` encodes as `1000000`
 - **Negative zero normalized:** `-0.0` → `0`
 - **Non-finite values → null:** `Infinity`, `-Infinity`, `NaN` → `null`
 
-**Large integers (>2^53-1):**
+**Large Python integers:**
 ```python
-9007199254740993  # Exceeds JS safe integer
+9007199254740993
 ```
 
 ```toon
-"9007199254740993"  # Quoted for JS compatibility
+9007199254740993
 ```
+
+Python `int` values are arbitrary precision and are emitted directly as decimal integers. `decimal.Decimal` values are currently normalized to Python `float` values before encoding, so Decimal encoding is not lossless.
 
 ### Booleans
 

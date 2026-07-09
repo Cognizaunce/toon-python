@@ -79,7 +79,7 @@ encode_json_to_toon('{"items": [1, 2, 3]}')
 # items[3]: 1,2,3
 ```
 
-Despite the module name, this package does not currently expose a command-line interface.
+This helper is available from the package root; the package does not currently expose a command-line interface.
 
 ---
 
@@ -127,12 +127,12 @@ print(encode(data, options))
 | Python Type | Normalized To |
 |-------------|---------------|
 | `datetime.datetime`, `datetime.date` | ISO 8601 string |
-| `decimal.Decimal` | `float` |
+| `decimal.Decimal` | `float` approximation |
+| Python `int` | unchanged, including arbitrary precision integers |
 | `tuple`, `set`, `frozenset` | `list` |
 | `pathlib.Path` | `str` |
 | `float("inf")`, `float("-inf")`, `float("nan")` | `None` |
 | Functions / callables | `None` |
-| Integers larger than `2**53 - 1` | `str` |
 | `-0.0` | `0` |
 
 **Example:**

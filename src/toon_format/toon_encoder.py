@@ -1,6 +1,11 @@
 # Copyright (c) 2025 TOON Format Organization
 # SPDX-License-Identifier: MIT
-"""Internal TOON encoding helpers."""
+"""Internal TOON encoder implementation.
+
+This module encodes normalized JSON-compatible values into TOON output. It owns
+layout decisions for objects, arrays, tabular rows, primitive values, string
+quoting, and key escaping.
+"""
 
 import re
 from decimal import Decimal
@@ -283,7 +288,9 @@ class ToonEncoder:
             self._key_cache[key] = cached
         return cached
 
+
 # MARK: - Utilities
+
 
 def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
     """Classify an array with early exits for non-tabular and mixed arrays."""

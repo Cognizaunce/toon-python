@@ -1,7 +1,7 @@
 """Tests for internal encoding utility helpers."""
 
 from toon_format import encode
-from toon_format._encoding import escape_string
+from toon_format.toon_encoder import escape_string
 
 
 class TestStringQuoting:
