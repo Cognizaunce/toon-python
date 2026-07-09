@@ -1,66 +1,60 @@
 # Documentation
 
-Comprehensive documentation for toon_format Python package.
+Documentation for the encode-only `toon_format` Python package.
 
 ## Quick Links
 
-- [API Reference](api.md) - Complete function and class documentation
-- [Format Specification](format.md) - Detailed TOON syntax and rules
-- [LLM Integration](llm-integration.md) - Best practices for using TOON with LLMs
+- [API Reference](api.md) - Public encoding APIs and options
+- [Format Specification](format.md) - TOON syntax and examples
+- [LLM Integration](llm-integration.md) - Best practices for using encoded TOON in LLM workflows
 
 ## Getting Started
 
 New to TOON? Start here:
 
-1. Read the [main README](../README.md) for quick start examples
+1. Read the [main README](../README.md) for installation and quick start examples
 2. Review the [Format Specification](format.md) to understand TOON syntax
-3. Check the [API Reference](api.md) for detailed function usage
-4. See [LLM Integration](llm-integration.md) for advanced use cases
+3. Check the [API Reference](api.md) for `encode()` and `encode_normalized()` usage
+4. See [LLM Integration](llm-integration.md) for prompt/context patterns
 
 ## Documentation Structure
 
 ### [API Reference](api.md)
 
-Complete reference for all public functions and classes:
-- `encode()` - Convert Python to TOON
-- `decode()` - Convert TOON to Python
+Complete reference for public encoding APIs:
+- `encode()` - Convert Python values to TOON
+- `encode_normalized()` - Convert already-normalized JSON-compatible values to TOON
+- `encode_json_to_toon()` - Convert a JSON string to TOON
 - `EncodeOptions` - Encoding configuration
-- `DecodeOptions` - Decoding configuration
-- `ToonDecodeError` - Error handling
 - Type normalization rules
-- Advanced usage patterns
+- Advanced encoding usage patterns
 
 ### [Format Specification](format.md)
 
 Detailed explanation of TOON format rules:
-- Objects (key-value pairs, nesting)
-- Arrays (primitive, tabular, list, nested)
-- Delimiters (comma, tab, pipe)
+- Objects and nesting
+- Arrays, including primitive and tabular forms
+- Delimiters
 - String quoting rules
-- Primitives (numbers, booleans, null)
-- Indentation rules
+- Primitives
+- Indentation
 - Complete format examples
 
 ### [LLM Integration](llm-integration.md)
 
 Best practices for LLM usage:
-- Why TOON for LLMs
+- Why TOON for LLM contexts
+- Encoding data before sending it to a model
 - Prompting strategies
 - Token efficiency techniques
 - Real-world use cases
-- Error handling
-- Integration examples (OpenAI, Anthropic)
-- Performance metrics
-- Debugging tips
 
 ## Roadmap
 
 The following features are planned for future releases:
 
-- **Comprehensive Benchmarks**: Detailed token efficiency comparisons across various data structures and LLM models (gpt5, gpt5-mini, Claude)
+- **Comprehensive Benchmarks**: Detailed token efficiency comparisons across data structures and LLM models
 - **Official Documentation Site**: Dedicated documentation website with interactive examples and tutorials
-
-Stay tuned for updates!
 
 ## External Resources
 
@@ -82,26 +76,26 @@ print(encode(data))
 # age: 30
 ```
 
-### Basic Decoding
+### Fast Path for JSON-Compatible Data
 
 ```python
-from toon_format import decode
+import json
+from toon_format import encode_normalized
 
-toon = "items[2]: apple,banana"
-data = decode(toon)
-# {'items': ['apple', 'banana']}
+data = json.loads('{"items": [{"id": 1}, {"id": 2}]}')
+print(encode_normalized(data))
+# items[2]{id}:
+#   1
+#   2
 ```
 
 ### With Options
 
 ```python
-# Custom delimiter
-encode([1, 2, 3], {"delimiter": "\t"})
-# [3	]: 1	2	3
+from toon_format import encode
 
-# Lenient decoding
-decode("items[5]: a,b,c", {"strict": False})
-# {'items': ['a', 'b', 'c']}  # Accepts length mismatch
+encode([1, 2, 3], {"delimiter": "\t", "lengthMarker": "#"})
+# [#3\t]: 1\t2\t3
 ```
 
 ## Support

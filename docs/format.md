@@ -553,7 +553,7 @@ text: " value "
 
 ## Order Preservation
 
-**Object key order** and **array element order** are **always preserved** during encoding and decoding.
+**Object key order** and **array element order** are **preserved during encoding**.
 
 ```python
 from collections import OrderedDict
@@ -567,14 +567,6 @@ z: 1
 a: 2
 m: 3
 ```
-
-Decoding preserves order:
-```python
-decoded = decode(toon)
-list(decoded.keys())  # ['z', 'a', 'm']
-```
-
----
 
 ## Complete Examples
 

@@ -4,10 +4,11 @@
 
 import re
 from decimal import Decimal
-from typing import Literal, cast
+from typing import cast
 
-from ._utils import escape_string, is_boolean_or_null_literal
 from .constants import (
+    BACKSLASH,
+    CARRIAGE_RETURN,
     CLOSE_BRACE,
     CLOSE_BRACKET,
     COLON,
@@ -16,11 +17,13 @@ from .constants import (
     FALSE_LITERAL,
     LIST_ITEM_MARKER,
     LIST_ITEM_PREFIX,
+    NEWLINE,
     NULL_LITERAL,
     NUMERIC_REGEX,
     OCTAL_REGEX,
     OPEN_BRACE,
     OPEN_BRACKET,
+    TAB,
     TRUE_LITERAL,
     VALID_KEY_REGEX,
 )
@@ -30,7 +33,6 @@ from .normalize import (
     is_json_primitive,
 )
 from .types import (
-    Delimiter,
     Depth,
     JsonArray,
     JsonObject,
@@ -51,6 +53,16 @@ _NUMERIC_PATTERN = re.compile(NUMERIC_REGEX, re.IGNORECASE)
 _OCTAL_PATTERN = re.compile(OCTAL_REGEX)
 _STRUCTURAL_CHARS_PATTERN = re.compile(r"[\[\]{}]")
 _VALID_KEY_PATTERN = re.compile(VALID_KEY_REGEX, re.IGNORECASE)
+
+
+def encode_value(
+    value: JsonValue,
+    options: ResolvedEncodeOptions,
+    writer: LineWriter,
+    depth: Depth = 0,
+) -> None:
+    """Encode a normalized value to TOON format."""
+    ToonEncoder(options, writer).write_value(value, depth)
 
 
 class ToonEncoder:
@@ -274,16 +286,6 @@ class ToonEncoder:
         return cached
 
 
-def encode_value(
-    value: JsonValue,
-    options: ResolvedEncodeOptions,
-    writer: LineWriter,
-    depth: Depth = 0,
-) -> None:
-    """Encode a normalized value to TOON format."""
-    ToonEncoder(options, writer).write_value(value, depth)
-
-
 def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
     """Classify an array with early exits for non-tabular and mixed arrays."""
     if not arr:
@@ -324,19 +326,6 @@ def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
     return (ARRAY_MIXED, None)
 
 
-def detect_tabular_header(arr: list[JsonObject], delimiter: str) -> list[str] | None:
-    """Detect if an object array can use tabular format and return header keys."""
-    array_kind, fields = classify_array(arr)
-    if array_kind == ARRAY_OBJECTS_TABULAR:
-        return fields
-    return None
-
-
-def is_tabular_array(arr: list[JsonObject], delimiter: str) -> bool:
-    """Check if an object array qualifies for tabular format."""
-    return detect_tabular_header(arr, delimiter) is not None
-
-
 def encode_primitive(value: JsonPrimitive, delimiter: str = COMMA) -> str:
     """Encode a primitive value."""
     if value is None:
@@ -367,36 +356,6 @@ def encode_key(key: str) -> str:
     if is_valid_unquoted_key(key):
         return key
     return f"{DOUBLE_QUOTE}{escape_string(key)}{DOUBLE_QUOTE}"
-
-
-def join_encoded_values(values: list[str], delimiter: Delimiter) -> str:
-    """Join encoded primitive values with a delimiter."""
-    return delimiter.join(values)
-
-
-def format_header(
-    key: str | None,
-    length: int,
-    fields: list[str] | None,
-    delimiter: Delimiter,
-    length_marker: str | Literal[False] | None,
-) -> str:
-    """Format an array or table header."""
-    marker_prefix = length_marker if length_marker else ""
-
-    fields_str = ""
-    if fields:
-        encoded_fields = [encode_key(field) for field in fields]
-        fields_str = f"{OPEN_BRACE}{delimiter.join(encoded_fields)}{CLOSE_BRACE}"
-
-    if delimiter != COMMA:
-        length_str = f"{OPEN_BRACKET}{marker_prefix}{length}{delimiter}{CLOSE_BRACKET}"
-    else:
-        length_str = f"{OPEN_BRACKET}{marker_prefix}{length}{CLOSE_BRACKET}"
-
-    if key:
-        return f"{encode_key(key)}{length_str}{fields_str}{COLON}"
-    return f"{length_str}{fields_str}{COLON}"
 
 
 def is_valid_unquoted_key(key: str) -> bool:
@@ -430,3 +389,19 @@ def is_safe_unquoted(value: str, delimiter: str = COMMA) -> bool:
 def is_numeric_like(value: str) -> bool:
     """Check if a string looks like a number and therefore needs quoting."""
     return bool(_NUMERIC_PATTERN.match(value) or _OCTAL_PATTERN.match(value))
+
+
+def is_boolean_or_null_literal(token: str) -> bool:
+    """Check if a token is a boolean or null literal (`true`, `false`, `null`)."""
+    return token == TRUE_LITERAL or token == FALSE_LITERAL or token == NULL_LITERAL
+
+
+def escape_string(value: str) -> str:
+    """Escape special characters in a string for encoding."""
+    return (
+        value.replace(BACKSLASH, BACKSLASH + BACKSLASH)
+        .replace(DOUBLE_QUOTE, BACKSLASH + DOUBLE_QUOTE)
+        .replace(NEWLINE, BACKSLASH + "n")
+        .replace(CARRIAGE_RETURN, BACKSLASH + "r")
+        .replace(TAB, BACKSLASH + "t")
+    )

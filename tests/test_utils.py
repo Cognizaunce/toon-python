@@ -1,6 +1,6 @@
-"""Tests for the _utils module."""
+"""Tests for internal encoding utility helpers."""
 
-from toon_format._utils import (
+from toon_format._encoding import (
     escape_string,
     is_boolean_or_null_literal,
 )
