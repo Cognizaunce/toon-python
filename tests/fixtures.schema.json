@@ -14,14 +14,14 @@
     },
     "category": {
       "type": "string",
-      "enum": ["encode", "decode"],
-      "description": "Test category: encode (JSON → TOON) or decode (TOON → JSON)"
+      "enum": ["encode"],
+      "description": "Test category; this Python package currently runs encode fixtures only"
     },
     "description": {
       "type": "string",
       "description": "Brief description of what this fixture file tests",
       "minLength": 1,
-      "examples": ["Primitives - String Encoding", "Tabular Arrays - Decoding"]
+      "examples": ["Primitives - String Encoding", "Tabular Arrays - Encoding"]
     },
     "tests": {
       "type": "array",
@@ -41,10 +41,10 @@
             ]
           },
           "input": {
-            "description": "Input value - JSON value for encode tests, TOON string for decode tests"
+            "description": "JSON-compatible input value to encode"
           },
           "expected": {
-            "description": "Expected output - TOON string for encode tests, JSON value for decode tests"
+            "description": "Expected TOON string"
           },
           "shouldError": {
             "type": "boolean",
@@ -53,12 +53,12 @@
           },
           "options": {
             "type": "object",
-            "description": "Encoding or decoding options",
+            "description": "Encoding options",
             "properties": {
               "delimiter": {
                 "type": "string",
                 "enum": [",", "\t", "|"],
-                "description": "Array delimiter (encode only)",
+                "description": "Array delimiter",
                 "default": ","
               },
               "indent": {
@@ -70,13 +70,8 @@
               "lengthMarker": {
                 "type": "string",
                 "enum": ["#", ""],
-                "description": "Optional marker to prefix array lengths (encode only)",
+                "description": "Optional marker to prefix array lengths",
                 "default": ""
-              },
-              "strict": {
-                "type": "boolean",
-                "description": "Enable strict validation (decode only)",
-                "default": true
               }
             },
             "additionalProperties": false

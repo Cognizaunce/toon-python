@@ -192,7 +192,7 @@
       "note": "1e20"
     },
     {
-      "name": "encodes MAX_SAFE_INTEGER",
+      "name": "encodes large Python integer",
       "input": 9007199254740991,
       "expected": "9007199254740991",
       "specSection": "5"

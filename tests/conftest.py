@@ -72,7 +72,7 @@ def edge_case_values() -> dict[str, Any]:
         "negative_infinity": float("-inf"),
         "nan": float("nan"),
         "negative_zero": -0.0,
-        "large_int": 9007199254740992,  # 2^53
+        "large_int": 9007199254740992,
         "none": None,
     }
 

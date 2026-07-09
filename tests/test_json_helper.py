@@ -1,4 +1,4 @@
-"""Tests for the JSON-to-TOON helper module."""
+"""Tests for the package-root JSON-to-TOON helper."""
 
 import json
 

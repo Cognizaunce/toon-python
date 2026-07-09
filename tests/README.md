@@ -9,7 +9,7 @@ The tests serve four main purposes:
 - **Encode conformance:** Verify output matches the official TOON encode fixtures.
 - **Regression coverage:** Catch changes in formatting, quoting, normalization, and options.
 - **Performance-path safety:** Protect `encode_normalized()` and the optimized encoder internals.
-- **Integration coverage:** Check JSON string conversion and optional Pydantic encoding helpers.
+- **Integration coverage:** Check JSON string conversion through the package-root helper.
 
 ## Directory Structure
 
@@ -30,14 +30,11 @@ tests/
 │       └── options.json
 ├── conftest.py             # Shared pytest fixtures
 ├── test_api.py             # Public encode API behavior
-├── test_cli.py             # `encode_json_to_toon()` helper behavior
+├── test_json_helper.py     # `encode_json_to_toon()` helper behavior
 ├── test_encoder.py         # Python-specific encoder behavior
 ├── test_normalize_functions.py
-├── test_numeric_detection.py
-├── test_pydantic.py        # Pydantic schema/model TOON encoding
 ├── test_spec_fixtures.py   # Official encode fixture runner
-├── test_string_utils.py
-└── test_utils.py
+└── test_utils.py           # Internal quoting and escaping helpers
 ```
 
 ## Fixture Format
@@ -103,8 +100,8 @@ Useful focused runs:
 
 ```bash
 uv run pytest tests/test_spec_fixtures.py
-uv run pytest tests/test_api.py tests/test_cli.py tests/test_encoder.py
-uv run pytest tests/test_numeric_detection.py tests/test_string_utils.py tests/test_utils.py
+uv run pytest tests/test_api.py tests/test_json_helper.py tests/test_encoder.py
+uv run pytest tests/test_normalize_functions.py tests/test_utils.py
 ```
 
 ## Test Coverage
@@ -127,12 +124,10 @@ uv run pytest tests/test_numeric_detection.py tests/test_string_utils.py tests/t
 ### Python-Specific Tests
 
 - `test_api.py`: Public `encode()` and `encode_normalized()` behavior.
-- `test_cli.py`: `encode_json_to_toon()` JSON string helper.
+- `test_json_helper.py`: `encode_json_to_toon()` JSON string helper.
 - `test_encoder.py`: Python-specific encoding edge cases.
 - `test_normalize_functions.py`: Normalization helpers for native Python values.
-- `test_numeric_detection.py`: Numeric-looking string detection.
-- `test_pydantic.py`: Pydantic schema/model TOON encoding.
-- `test_string_utils.py` and `test_utils.py`: Internal string and literal helpers.
+- `test_utils.py`: Internal string quoting and escaping helpers.
 
 ## Adding Test Cases
 
@@ -146,6 +141,3 @@ To add encode fixture coverage:
 
 For Python-specific behavior, prefer a focused test module such as `test_encoder.py`, `test_api.py`, or `test_normalize_functions.py`.
 
-## Notes
-
-The repository may still keep upstream decode fixture files for reference, but this Python package does not run decode tests and does not expose decode APIs.
