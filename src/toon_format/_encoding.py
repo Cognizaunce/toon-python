@@ -13,6 +13,7 @@ from .constants import (
     CLOSE_BRACKET,
     COLON,
     COMMA,
+    CONTROL_CHARS_REGEX,
     DOUBLE_QUOTE,
     FALSE_LITERAL,
     LIST_ITEM_MARKER,
@@ -23,6 +24,7 @@ from .constants import (
     OCTAL_REGEX,
     OPEN_BRACE,
     OPEN_BRACKET,
+    STRUCTURAL_CHARS_REGEX,
     TAB,
     TRUE_LITERAL,
     VALID_KEY_REGEX,
@@ -48,21 +50,14 @@ ARRAY_OBJECTS_TABULAR = "objects_tabular"
 ARRAY_OBJECTS_LIST = "objects_list"
 ARRAY_MIXED = "mixed"
 
-_CONTROL_CHARS_PATTERN = re.compile(r"[\n\r\t]")
+_CONTROL_CHARS_PATTERN = re.compile(CONTROL_CHARS_REGEX)
 _NUMERIC_PATTERN = re.compile(NUMERIC_REGEX, re.IGNORECASE)
 _OCTAL_PATTERN = re.compile(OCTAL_REGEX)
-_STRUCTURAL_CHARS_PATTERN = re.compile(r"[\[\]{}]")
+_STRUCTURAL_CHARS_PATTERN = re.compile(STRUCTURAL_CHARS_REGEX)
 _VALID_KEY_PATTERN = re.compile(VALID_KEY_REGEX, re.IGNORECASE)
 
 
-def encode_value(
-    value: JsonValue,
-    options: ResolvedEncodeOptions,
-    writer: LineWriter,
-    depth: Depth = 0,
-) -> None:
-    """Encode a normalized value to TOON format."""
-    ToonEncoder(options, writer).write_value(value, depth)
+# MARK: - ToonEncoder
 
 
 class ToonEncoder:
@@ -210,6 +205,7 @@ class ToonEncoder:
         elif is_json_array(first_value):
             self.write_array_as_list_item(cast(JsonArray, first_value), depth, first_key)
         else:
+            # If the first field is nested, put "-" alone and write fields below it.
             self.writer.push(depth, LIST_ITEM_PREFIX.rstrip())
             self.write_key_value_pair(first_key, first_value, depth + 1)
 
@@ -223,6 +219,7 @@ class ToonEncoder:
             self.write_primitive_array_list_item(arr, depth, key)
             return
 
+        # Nested arrays in list items carry the "- " prefix on the header line only.
         self.writer.push(depth, f"{LIST_ITEM_PREFIX}{self.header(key, len(arr), tabular_fields)}")
         self.write_array_content(arr, depth + 1)
 
@@ -268,6 +265,7 @@ class ToonEncoder:
             encoded_fields = [self.key(field) for field in fields]
             fields_str = f"{OPEN_BRACE}{delimiter.join(encoded_fields)}{CLOSE_BRACE}"
 
+        # Comma is the implicit delimiter; non-comma delimiters are written in the header.
         if delimiter != COMMA:
             length_str = f"{OPEN_BRACKET}{marker_prefix}{length}{delimiter}{CLOSE_BRACKET}"
         else:
@@ -285,6 +283,7 @@ class ToonEncoder:
             self._key_cache[key] = cached
         return cached
 
+# MARK: - Utilities
 
 def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
     """Classify an array with early exits for non-tabular and mixed arrays."""
@@ -310,12 +309,14 @@ def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
         field_set = set(fields)
         field_count = len(fields)
         is_primitive = is_json_primitive
+        # Tabular rows can only contain primitive cell values.
         if not all(is_primitive(value) for value in first.values()):
             return (ARRAY_OBJECTS_LIST, None)
 
         for item in iterator:
             if not is_json_object(item):
                 return (ARRAY_MIXED, None)
+            # Any key mismatch means object list format; tabular arrays require identical columns.
             if len(item) != field_count or item.keys() != field_set:
                 return (ARRAY_OBJECTS_LIST, None)
             if not all(is_primitive(value) for value in item.values()):
@@ -324,6 +325,17 @@ def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
         return (ARRAY_OBJECTS_TABULAR, fields)
 
     return (ARRAY_MIXED, None)
+
+
+def escape_string(value: str) -> str:
+    """Escape special characters in a string for encoding."""
+    return (
+        value.replace(BACKSLASH, BACKSLASH + BACKSLASH)
+        .replace(DOUBLE_QUOTE, BACKSLASH + DOUBLE_QUOTE)
+        .replace(NEWLINE, BACKSLASH + "n")
+        .replace(CARRIAGE_RETURN, BACKSLASH + "r")
+        .replace(TAB, BACKSLASH + "t")
+    )
 
 
 def encode_primitive(value: JsonPrimitive, delimiter: str = COMMA) -> str:
@@ -356,6 +368,9 @@ def encode_key(key: str) -> str:
     if is_valid_unquoted_key(key):
         return key
     return f"{DOUBLE_QUOTE}{escape_string(key)}{DOUBLE_QUOTE}"
+
+
+# MARK: - Predicates
 
 
 def is_valid_unquoted_key(key: str) -> bool:
@@ -394,14 +409,3 @@ def is_numeric_like(value: str) -> bool:
 def is_boolean_or_null_literal(token: str) -> bool:
     """Check if a token is a boolean or null literal (`true`, `false`, `null`)."""
     return token == TRUE_LITERAL or token == FALSE_LITERAL or token == NULL_LITERAL
-
-
-def escape_string(value: str) -> str:
-    """Escape special characters in a string for encoding."""
-    return (
-        value.replace(BACKSLASH, BACKSLASH + BACKSLASH)
-        .replace(DOUBLE_QUOTE, BACKSLASH + DOUBLE_QUOTE)
-        .replace(NEWLINE, BACKSLASH + "n")
-        .replace(CARRIAGE_RETURN, BACKSLASH + "r")
-        .replace(TAB, BACKSLASH + "t")
-    )

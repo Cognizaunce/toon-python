@@ -1,25 +1,25 @@
 """Tests for internal encoding utility helpers."""
 
-from toon_format._encoding import (
-    escape_string,
-    is_boolean_or_null_literal,
-)
+from toon_format import encode
+from toon_format._encoding import escape_string
 
 
-class TestLiteralUtilities:
-    """Tests for literal detection helpers."""
+class TestStringQuoting:
+    """Tests for string quoting behavior protected by internal literal checks."""
 
-    def test_boolean_or_null_literals(self):
-        """Test true, false, and null are detected as reserved literals."""
-        assert is_boolean_or_null_literal("true")
-        assert is_boolean_or_null_literal("false")
-        assert is_boolean_or_null_literal("null")
+    def test_reserved_literals_are_quoted(self):
+        """Boolean and null literal strings are quoted to preserve string type."""
+        assert encode(["true", "false", "null"]) == '[3]: "true","false","null"'
 
-    def test_non_reserved_literals(self):
-        """Test non-reserved values are not detected as literals."""
-        assert not is_boolean_or_null_literal("")
-        assert not is_boolean_or_null_literal("hello")
-        assert not is_boolean_or_null_literal("True")
+    def test_numeric_like_strings_are_quoted(self):
+        """Numeric-looking strings are quoted to preserve string type."""
+        assert encode(["0", "42", "-1", "3.14", "1e10", "01"]) == (
+            '[6]: "0","42","-1","3.14","1e10","01"'
+        )
+
+    def test_plain_strings_remain_unquoted(self):
+        """Non-reserved, non-numeric strings can stay unquoted."""
+        assert encode(["hello", "True", "abc123"]) == "[3]: hello,True,abc123"
 
 
 class TestEscapeString:

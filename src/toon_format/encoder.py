@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: MIT
 """Core TOON encoding functionality.
 
-This module provides the main `encode()` function for converting Python values
-to TOON format strings. Handles option resolution and coordinates the encoding
-pipeline: normalization → encoding → writing.
+This module provides helpers for converting Python and JSON values to TOON format
+strings. Handles option resolution and coordinates the encoding pipeline:
+normalization → encoding → writing.
 """
 
+import json
 from typing import Any
 
-from ._encoding import encode_value
+from ._encoding import ToonEncoder
 from .constants import DEFAULT_DELIMITER, DELIMITERS
 from .normalize import normalize_value
 from .types import EncodeOptions, JsonValue, ResolvedEncodeOptions
@@ -38,8 +39,39 @@ def encode_normalized(value: JsonValue, options: EncodeOptions | None = None) ->
     """
     resolved_options = resolve_options(options)
     writer = LineWriter(resolved_options.indent)
-    encode_value(value, resolved_options, writer, 0)
+    ToonEncoder(resolved_options, writer).write_value(value, 0)
     return writer.to_string()
+
+
+def encode_json_to_toon(
+    json_text: str,
+    delimiter: str = ",",
+    indent: int = 2,
+    length_marker: bool = False,
+) -> str:
+    """Encode JSON text to TOON format.
+
+    Args:
+        json_text: JSON input string
+        delimiter: Delimiter character
+        indent: Indentation size
+        length_marker: Whether to add # prefix
+
+    Returns:
+        TOON-formatted string
+
+    Raises:
+        json.JSONDecodeError: If JSON is invalid
+    """
+    data = json.loads(json_text)
+
+    options: EncodeOptions = {
+        "indent": indent,
+        "delimiter": delimiter,
+        "lengthMarker": "#" if length_marker else False,
+    }
+
+    return encode_normalized(data, options)
 
 
 def resolve_options(options: EncodeOptions | None) -> ResolvedEncodeOptions:

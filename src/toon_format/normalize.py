@@ -25,8 +25,6 @@ from .types import JsonArray, JsonObject, JsonPrimitive, JsonValue
 # Module logger
 logger = getLogger("toon_format.normalize")
 
-_MAX_SAFE_INTEGER = 2**53 - 1
-
 
 def normalize_value(value: Any) -> JsonValue:
     """Normalize Python value to JSON-compatible type.

@@ -64,21 +64,3 @@ VALID_KEY_REGEX = r"^[A-Z_][\w.]*$"
 HEADER_LENGTH_REGEX = r"^#?(\d+)([\|\t])?$"
 INTEGER_REGEX = r"^-?\d+$"
 # endregion
-
-# region Escape sequence maps
-ESCAPE_SEQUENCES = {
-    BACKSLASH: "\\\\",
-    DOUBLE_QUOTE: '\\"',
-    NEWLINE: "\\n",
-    CARRIAGE_RETURN: "\\r",
-    TAB: "\\t",
-}
-
-UNESCAPE_SEQUENCES = {
-    "n": NEWLINE,
-    "r": CARRIAGE_RETURN,
-    "t": TAB,
-    "\\": BACKSLASH,
-    '"': DOUBLE_QUOTE,
-}
-# endregion

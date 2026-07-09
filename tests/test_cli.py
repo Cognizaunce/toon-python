@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from toon_format.cli import encode_json_to_toon
+from toon_format import encode_json_to_toon
 
 
 class TestEncodeJsonToToon:

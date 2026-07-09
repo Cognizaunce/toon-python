@@ -17,12 +17,13 @@ Example:
     age: 30
 """
 
-from .encoder import encode, encode_normalized
+from .encoder import encode, encode_json_to_toon, encode_normalized
 from .types import Delimiter, DelimiterKey, EncodeOptions
 
 __version__ = "0.9.0-beta.1"
 __all__ = [
     "encode",
+    "encode_json_to_toon",
     "encode_normalized",
     "Delimiter",
     "DelimiterKey",

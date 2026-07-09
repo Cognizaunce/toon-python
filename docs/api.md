@@ -73,7 +73,7 @@ Parses a JSON string with the standard library `json` module and encodes it as T
 **Example:**
 
 ```python
-from toon_format.cli import encode_json_to_toon
+from toon_format import encode_json_to_toon
 
 encode_json_to_toon('{"items": [1, 2, 3]}')
 # items[3]: 1,2,3

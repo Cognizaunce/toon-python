@@ -65,7 +65,7 @@ toon = encode(data)
 The package keeps a helper for JSON string to TOON string conversion:
 
 ```python
-from toon_format.cli import encode_json_to_toon
+from toon_format import encode_json_to_toon
 
 toon = encode_json_to_toon('{"items": [1, 2, 3]}')
 # items[3]: 1,2,3
@@ -118,7 +118,7 @@ Use this only when values are `dict`, `list`, `str`, `int`, `float`, `bool`, or 
 Parses a JSON string with the standard library `json` module and then uses `encode_normalized()`.
 
 ```python
-from toon_format.cli import encode_json_to_toon
+from toon_format import encode_json_to_toon
 
 encode_json_to_toon('{"items": [1, 2, 3]}', delimiter="|")
 # items[3|]: 1|2|3
