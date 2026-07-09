@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -13,13 +13,13 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 ENCODE_DIR = FIXTURES_DIR / "encode"
 
 
-def load_fixture_file(filepath: Path) -> Dict[str, Any]:
+def load_fixture_file(filepath: Path) -> dict[str, Any]:
     """Load a fixture JSON file."""
     with open(filepath, encoding="utf-8") as f:
         return json.load(f)
 
 
-def get_all_encode_fixtures() -> List[tuple]:
+def get_all_encode_fixtures() -> list[tuple]:
     """Get all encode test cases from fixture files."""
     test_cases = []
 
@@ -38,7 +38,7 @@ class TestEncodeFixtures:
     """Test all encode fixtures from the TOON specification."""
 
     @pytest.mark.parametrize("test_id,test_data,fixture_name", get_all_encode_fixtures())
-    def test_encode(self, test_id: str, test_data: Dict[str, Any], fixture_name: str):
+    def test_encode(self, test_id: str, test_data: dict[str, Any], fixture_name: str):
         input_data = test_data["input"]
         expected = test_data["expected"]
         options_dict = test_data.get("options", {})
@@ -64,7 +64,7 @@ def count_tests_in_fixture(fixture_path: Path) -> int:
     return len(fixture_data.get("tests", []))
 
 
-def get_fixture_stats() -> Dict[str, Any]:
+def get_fixture_stats() -> dict[str, Any]:
     """Get statistics about the loaded encode fixtures."""
     encode_files = sorted(ENCODE_DIR.glob("*.json"))
 

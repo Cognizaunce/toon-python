@@ -33,7 +33,7 @@ uv run pytest --cov=src/toon_format --cov-report=term-missing
 
 ### Python Version Support
 
-We support Python 3.8 and above (including Python 3.13 and 3.14).
+We support Python 3.11 and above (including Python 3.13 and 3.14).
 
 ### Type Safety
 

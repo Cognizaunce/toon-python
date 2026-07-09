@@ -4,7 +4,7 @@
 
 import re
 from decimal import Decimal
-from typing import Dict, List, Literal, Optional, Tuple, Union, cast
+from typing import Literal, cast
 
 from ._literal_utils import is_boolean_or_null_literal
 from ._string_utils import escape_string
@@ -62,7 +62,7 @@ class ToonEncoder:
         self.delimiter = options.delimiter
         self.length_marker = options.lengthMarker
         self.writer = writer
-        self._key_cache: Dict[str, str] = {}
+        self._key_cache: dict[str, str] = {}
 
     def write_value(self, value: JsonValue, depth: Depth = 0) -> None:
         """Encode a normalized value at the given depth."""
@@ -73,7 +73,7 @@ class ToonEncoder:
         elif is_json_object(value):
             self.write_object(cast(JsonObject, value), depth, None)
 
-    def write_object(self, obj: JsonObject, depth: Depth, key: Optional[str]) -> None:
+    def write_object(self, obj: JsonObject, depth: Depth, key: str | None) -> None:
         """Encode an object."""
         if key:
             self.writer.push(depth, f"{self.key(key)}:")
@@ -91,7 +91,7 @@ class ToonEncoder:
         elif is_json_object(value):
             self.write_object(cast(JsonObject, value), depth, key)
 
-    def write_array(self, arr: JsonArray, depth: Depth, key: Optional[str]) -> None:
+    def write_array(self, arr: JsonArray, depth: Depth, key: str | None) -> None:
         """Encode an array using the most compact available representation."""
         if not arr:
             self.writer.push(depth, self.header(key, 0, None))
@@ -137,13 +137,11 @@ class ToonEncoder:
                 elif is_json_array(item):
                     self.write_array(cast(JsonArray, item), depth, None)
 
-    def write_inline_primitive_array(
-        self, arr: JsonArray, depth: Depth, key: Optional[str]
-    ) -> None:
+    def write_inline_primitive_array(self, arr: JsonArray, depth: Depth, key: str | None) -> None:
         """Encode an array of primitives on one line."""
         self.writer.push(depth, self.primitive_array_line(arr, key, list_item=False))
 
-    def write_array_of_arrays(self, arr: JsonArray, depth: Depth, key: Optional[str]) -> None:
+    def write_array_of_arrays(self, arr: JsonArray, depth: Depth, key: str | None) -> None:
         """Encode an array whose items are arrays."""
         self.writer.push(depth, self.header(key, len(arr), None))
 
@@ -156,10 +154,10 @@ class ToonEncoder:
 
     def write_array_of_objects_as_tabular(
         self,
-        arr: List[JsonObject],
-        fields: List[str],
+        arr: list[JsonObject],
+        fields: list[str],
         depth: Depth,
-        key: Optional[str],
+        key: str | None,
     ) -> None:
         """Encode uniform primitive-only objects in tabular form."""
         self.writer.push(depth, self.header(key, len(arr), fields))
@@ -171,7 +169,7 @@ class ToonEncoder:
             push(row_depth, primitive_row(obj, fields))
 
     def write_mixed_array_as_list_items(
-        self, arr: JsonArray, depth: Depth, key: Optional[str]
+        self, arr: JsonArray, depth: Depth, key: str | None
     ) -> None:
         """Encode mixed or nested arrays using list items."""
         self.writer.push(depth, self.header(key, len(arr), None))
@@ -207,9 +205,7 @@ class ToonEncoder:
         for key, value in items:
             self.write_key_value_pair(key, value, depth + 1)
 
-    def write_array_as_list_item(
-        self, arr: JsonArray, depth: Depth, key: Optional[str]
-    ) -> None:
+    def write_array_as_list_item(self, arr: JsonArray, depth: Depth, key: str | None) -> None:
         """Encode an array that appears as a list item or first object-list field."""
         array_kind, tabular_fields = classify_array(arr)
         if array_kind == ARRAY_PRIMITIVE:
@@ -220,14 +216,12 @@ class ToonEncoder:
         self.write_array_content(arr, depth + 1)
 
     def write_primitive_array_list_item(
-        self, arr: JsonArray, depth: Depth, key: Optional[str]
+        self, arr: JsonArray, depth: Depth, key: str | None
     ) -> None:
         """Encode a primitive array with a list-item prefix."""
         self.writer.push(depth, self.primitive_array_line(arr, key, list_item=True))
 
-    def primitive_array_line(
-        self, arr: JsonArray, key: Optional[str], *, list_item: bool
-    ) -> str:
+    def primitive_array_line(self, arr: JsonArray, key: str | None, *, list_item: bool) -> str:
         """Build one line for an inline primitive array."""
         line = self.header(key, len(arr), None)
         joined = self.join_primitives(arr)
@@ -237,7 +231,7 @@ class ToonEncoder:
             return f"{LIST_ITEM_PREFIX}{line}"
         return line
 
-    def primitive_row(self, obj: JsonObject, fields: List[str]) -> str:
+    def primitive_row(self, obj: JsonObject, fields: list[str]) -> str:
         """Build one tabular row for a primitive-only object."""
         delimiter = self.delimiter
         primitive = encode_primitive
@@ -253,7 +247,7 @@ class ToonEncoder:
         """Encode one primitive with the active delimiter."""
         return encode_primitive(value, self.delimiter)
 
-    def header(self, key: Optional[str], length: int, fields: Optional[List[str]]) -> str:
+    def header(self, key: str | None, length: int, fields: list[str] | None) -> str:
         """Build an array header with active options."""
         delimiter = self.delimiter
         marker_prefix = self.length_marker if self.length_marker else ""
@@ -291,7 +285,7 @@ def encode_value(
     ToonEncoder(options, writer).write_value(value, depth)
 
 
-def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
+def classify_array(arr: JsonArray) -> tuple[str, list[str] | None]:
     """Classify an array with early exits for non-tabular and mixed arrays."""
     if not arr:
         return (ARRAY_PRIMITIVE, None)
@@ -331,7 +325,7 @@ def classify_array(arr: JsonArray) -> Tuple[str, Optional[List[str]]]:
     return (ARRAY_MIXED, None)
 
 
-def detect_tabular_header(arr: List[JsonObject], delimiter: str) -> Optional[List[str]]:
+def detect_tabular_header(arr: list[JsonObject], delimiter: str) -> list[str] | None:
     """Detect if an object array can use tabular format and return header keys."""
     array_kind, fields = classify_array(arr)
     if array_kind == ARRAY_OBJECTS_TABULAR:
@@ -339,7 +333,7 @@ def detect_tabular_header(arr: List[JsonObject], delimiter: str) -> Optional[Lis
     return None
 
 
-def is_tabular_array(arr: List[JsonObject], delimiter: str) -> bool:
+def is_tabular_array(arr: list[JsonObject], delimiter: str) -> bool:
     """Check if an object array qualifies for tabular format."""
     return detect_tabular_header(arr, delimiter) is not None
 
@@ -376,17 +370,17 @@ def encode_key(key: str) -> str:
     return f"{DOUBLE_QUOTE}{escape_string(key)}{DOUBLE_QUOTE}"
 
 
-def join_encoded_values(values: List[str], delimiter: Delimiter) -> str:
+def join_encoded_values(values: list[str], delimiter: Delimiter) -> str:
     """Join encoded primitive values with a delimiter."""
     return delimiter.join(values)
 
 
 def format_header(
-    key: Optional[str],
+    key: str | None,
     length: int,
-    fields: Optional[List[str]],
+    fields: list[str] | None,
     delimiter: Delimiter,
-    length_marker: Union[str, Literal[False], None],
+    length_marker: str | Literal[False] | None,
 ) -> str:
     """Format an array or table header."""
     marker_prefix = length_marker if length_marker else ""

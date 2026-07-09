@@ -7,7 +7,7 @@ to TOON format strings. Handles option resolution and coordinates the encoding
 pipeline: normalization → encoding → writing.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ._encoding import encode_value
 from .constants import DEFAULT_DELIMITER, DELIMITERS
@@ -16,7 +16,7 @@ from .types import EncodeOptions, JsonValue, ResolvedEncodeOptions
 from .writer import LineWriter
 
 
-def encode(value: Any, options: Optional[EncodeOptions] = None) -> str:
+def encode(value: Any, options: EncodeOptions | None = None) -> str:
     """Encode a value into TOON format.
 
     Args:
@@ -30,7 +30,7 @@ def encode(value: Any, options: Optional[EncodeOptions] = None) -> str:
     return encode_normalized(normalized, options)
 
 
-def encode_normalized(value: JsonValue, options: Optional[EncodeOptions] = None) -> str:
+def encode_normalized(value: JsonValue, options: EncodeOptions | None = None) -> str:
     """Encode an already-normalized JSON-compatible value into TOON format.
 
     This skips Python-specific normalization and is intended for values produced by
@@ -42,7 +42,7 @@ def encode_normalized(value: JsonValue, options: Optional[EncodeOptions] = None)
     return writer.to_string()
 
 
-def resolve_options(options: Optional[EncodeOptions]) -> ResolvedEncodeOptions:
+def resolve_options(options: EncodeOptions | None) -> ResolvedEncodeOptions:
     """Resolve encoding options with defaults.
 
     Args:

@@ -152,5 +152,3 @@ class TestConsistency:
             if val:  # Skip empty string edge case
                 assert not is_numeric_literal(val), f"{val} should not be numeric literal"
                 # is_numeric_like might have slightly different behavior for edge cases
-
-

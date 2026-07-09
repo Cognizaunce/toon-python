@@ -7,7 +7,7 @@
 
 Compact, human-readable TOON encoding for LLM contexts. TOON combines YAML-like indentation with CSV-like tabular arrays to reduce tokens for structured data while keeping output readable.
 
-**Key Features:** Python object to TOON encoding, fast JSON-compatible encode path, tabular arrays for uniform primitive objects, array length markers, Python 3.8+, focused encode test coverage.
+**Key Features:** Python object to TOON encoding, fast JSON-compatible encode path, tabular arrays for uniform primitive objects, array length markers, Python 3.11+, focused encode test coverage.
 
 ## Installation
 
@@ -145,27 +145,6 @@ Options are accepted as a plain dict or `EncodeOptions`.
 
 Tabular arrays are used only when every object has the same keys and every value is primitive. Arrays with nested objects or arrays use list format.
 
-## Pydantic Integration
-
-The optional Pydantic integration supports TOON encoding for schemas and model instances.
-
-```bash
-pip install "toon-python[pydantic]"
-```
-
-```python
-from toon_format.pydantic import ToonPydanticModel
-
-class User(ToonPydanticModel):
-    name: str
-    age: int
-
-schema_toon = User.schema_to_toon()
-model_toon = User(name="Alice", age=30).model_dump_toon()
-```
-
-TOON-to-Pydantic validation has been removed with the decode API.
-
 ## Optimization Summary
 
 The encoder has been optimized for the common internal workflow:
@@ -224,7 +203,7 @@ uv run ruff format src/ tests/
 uv run mypy src/
 ```
 
-The test suite is encode-only and covers public API behavior, normalization, numeric/string handling, Pydantic encoding, and official encode fixtures.
+The test suite is encode-only and covers public API behavior, normalization, numeric/string handling, and official encode fixtures.
 
 ## Project Status
 

@@ -3,20 +3,20 @@
 This module provides reusable test data and fixtures following pytest best practices.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 
 # Simple test data fixtures
 @pytest.fixture
-def simple_object() -> Dict[str, Any]:
+def simple_object() -> dict[str, Any]:
     """A simple object for basic encoding tests."""
     return {"id": 123, "name": "Alice", "active": True}
 
 
 @pytest.fixture
-def nested_object() -> Dict[str, Any]:
+def nested_object() -> dict[str, Any]:
     """A nested object structure for testing deep nesting."""
     return {
         "user": {
@@ -27,7 +27,7 @@ def nested_object() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def tabular_array() -> List[Dict[str, Any]]:
+def tabular_array() -> list[dict[str, Any]]:
     """Array of uniform objects suitable for tabular format."""
     return [
         {"id": 1, "name": "Alice", "age": 30},
@@ -37,13 +37,13 @@ def tabular_array() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def primitive_array() -> List[Any]:
+def primitive_array() -> list[Any]:
     """Array of primitive values for inline format."""
     return [1, 2, 3, 4, 5]
 
 
 @pytest.fixture
-def mixed_array() -> List[Any]:
+def mixed_array() -> list[Any]:
     """Array with mixed types requiring list format."""
     return [
         {"name": "Alice"},
@@ -65,7 +65,7 @@ def delimiter(request) -> str:
 
 # Edge case values
 @pytest.fixture
-def edge_case_values() -> Dict[str, Any]:
+def edge_case_values() -> dict[str, Any]:
     """Collection of edge case values for testing normalization."""
     return {
         "infinity": float("inf"),
@@ -79,7 +79,7 @@ def edge_case_values() -> Dict[str, Any]:
 
 # Python-specific types
 @pytest.fixture
-def python_types() -> Dict[str, Any]:
+def python_types() -> dict[str, Any]:
     """Python-specific types that need normalization."""
     from decimal import Decimal
 
@@ -93,19 +93,18 @@ def python_types() -> Dict[str, Any]:
 
 # Options fixtures
 @pytest.fixture
-def encode_options_comma() -> Dict[str, Any]:
+def encode_options_comma() -> dict[str, Any]:
     """Encode options with comma delimiter."""
     return {"delimiter": ",", "indent": 2}
 
 
 @pytest.fixture
-def encode_options_tab() -> Dict[str, Any]:
+def encode_options_tab() -> dict[str, Any]:
     """Encode options with tab delimiter."""
     return {"delimiter": "\t", "indent": 2}
 
 
 @pytest.fixture
-def encode_options_pipe() -> Dict[str, Any]:
+def encode_options_pipe() -> dict[str, Any]:
     """Encode options with pipe delimiter."""
     return {"delimiter": "|", "indent": 2}
-

@@ -6,13 +6,13 @@ Defines type aliases and TypedDict classes for JSON values, encoding options,
 and internal types used throughout the package.
 """
 
-from typing import Any, Dict, List, Literal, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 # JSON-compatible types
-JsonPrimitive = Union[str, int, float, bool, None]
-JsonObject = Dict[str, Any]
-JsonArray = List[Any]
-JsonValue = Union[JsonPrimitive, JsonArray, JsonObject]
+JsonPrimitive = str | int | float | bool | None
+JsonObject = dict[str, Any]
+JsonArray = list[Any]
+JsonValue = JsonPrimitive | JsonArray | JsonObject
 
 # Delimiter type
 Delimiter = str
@@ -30,7 +30,7 @@ class EncodeOptions(TypedDict, total=False):
 
     indent: int
     delimiter: Delimiter
-    lengthMarker: Union[Literal["#"], Literal[False]]
+    lengthMarker: Literal["#"] | Literal[False]
 
 
 class ResolvedEncodeOptions:
@@ -40,11 +40,11 @@ class ResolvedEncodeOptions:
         self,
         indent: int = 2,
         delimiter: str = ",",
-        length_marker: Union[Literal["#"], Literal[False]] = False,
+        length_marker: Literal["#"] | Literal[False] = False,
     ) -> None:
         self.indent = indent
         self.delimiter = delimiter
-        self.lengthMarker: Union[str, Literal[False]] = length_marker
+        self.lengthMarker: str | Literal[False] = length_marker
 
 
 # Depth type for tracking indentation level
