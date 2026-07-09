@@ -6,8 +6,7 @@ import re
 from decimal import Decimal
 from typing import Literal, cast
 
-from ._literal_utils import is_boolean_or_null_literal
-from ._string_utils import escape_string
+from ._utils import escape_string, is_boolean_or_null_literal
 from .constants import (
     CLOSE_BRACE,
     CLOSE_BRACKET,
