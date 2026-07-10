@@ -1,9 +1,9 @@
 # Copyright (c) 2025 TOON Format Organization
 # SPDX-License-Identifier: MIT
-"""Constants for TOON format encoding and decoding.
+"""Shared constants for the TOON format implementation.
 
-Defines all string literals, characters, and configuration values used throughout
-the TOON implementation. Centralizes magic values for maintainability.
+Defines structural tokens, literal values, delimiters, escape characters, and
+regex pattern strings used throughout the package.
 """
 
 from typing import TYPE_CHECKING
